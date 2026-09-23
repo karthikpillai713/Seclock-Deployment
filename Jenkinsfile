@@ -6,7 +6,7 @@ pipeline {
 
         AWS_REGION = "us-east-1"
 
-        AWS_ACCOUNT_ID = "879786010528"
+        AWS_ACCOUNT_ID = "294936105765"
 
         ECR_REPOSITORY = "seclock"
 
