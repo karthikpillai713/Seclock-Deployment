@@ -1,13 +1,12 @@
-
 pipeline {
 
     agent any
 
     environment {
 
-        AWS_REGION = "ap-south-2"
+        AWS_REGION = "us-east-1"
 
-        AWS_ACCOUNT_ID = "599499159844"
+        AWS_ACCOUNT_ID = "879786010528"
 
         ECR_REPOSITORY = "seclock"
 
@@ -134,13 +133,19 @@ pipeline {
             steps {
                 echo 'Pushing Docker image to Amazon ECR...'
 
-                sh '''
-                    echo "===== PUSHING IMAGE TO ECR ====="
+                withCredentials([
+                    [$class: 'AmazonWebServicesCredentialsBinding',
+                     credentialsId: 'aws-credentials']
+                ]) {
 
-                    docker push ${IMAGE_NAME}:${IMAGE_TAG}
+                    sh '''
+                        echo "===== PUSHING IMAGE TO ECR ====="
 
-                    docker push ${IMAGE_NAME}:latest
-                '''
+                        docker push ${IMAGE_NAME}:${IMAGE_TAG}
+
+                        docker push ${IMAGE_NAME}:latest
+                    '''
+                }
             }
         }
 
@@ -193,47 +198,48 @@ pipeline {
                 }
             }
         }
-stage('Verify EKS Deployment') {
-    steps {
-        echo 'Checking EKS deployment...'
-
-        withCredentials([
-            [$class: 'AmazonWebServicesCredentialsBinding',
-             credentialsId: 'aws-credentials']
-        ]) {
-
-            sh '''
-                echo "=========================================="
-                echo "              PODS"
-                echo "=========================================="
-
-                kubectl get pods -n seclock
 
 
-                echo "=========================================="
-                echo "           DEPLOYMENT"
-                echo "=========================================="
+        stage('Verify EKS Deployment') {
+            steps {
+                echo 'Checking EKS deployment...'
 
-                kubectl get deployment -n seclock
+                withCredentials([
+                    [$class: 'AmazonWebServicesCredentialsBinding',
+                     credentialsId: 'aws-credentials']
+                ]) {
+
+                    sh '''
+                        echo "=========================================="
+                        echo "              PODS"
+                        echo "=========================================="
+
+                        kubectl get pods -n seclock
 
 
-                echo "=========================================="
-                echo "             SERVICE"
-                echo "=========================================="
+                        echo "=========================================="
+                        echo "           DEPLOYMENT"
+                        echo "=========================================="
 
-                kubectl get svc -n seclock
+                        kubectl get deployment -n seclock
 
 
-                echo "=========================================="
-                echo "          ENDPOINTS"
-                echo "=========================================="
+                        echo "=========================================="
+                        echo "             SERVICE"
+                        echo "=========================================="
 
-                kubectl get endpoints -n seclock
-            '''
+                        kubectl get svc -n seclock
+
+
+                        echo "=========================================="
+                        echo "          ENDPOINTS"
+                        echo "=========================================="
+
+                        kubectl get endpoints -n seclock
+                    '''
+                }
+            }
         }
-    }
-}
 
-        
-}
+    }
 }
