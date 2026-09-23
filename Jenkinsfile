@@ -6,7 +6,7 @@ pipeline {
 
         AWS_REGION = "us-east-1"
 
-        AWS_ACCOUNT_ID = "294936105765"
+        AWS_ACCOUNT_ID = "879786010528"
 
         ECR_REPOSITORY = "seclock"
 
@@ -24,30 +24,38 @@ pipeline {
         stage('Checkout') {
             steps {
                 echo 'Checking out source code from GitHub...'
-
                 checkout scm
             }
         }
 
+        stage('Check AWS Account') {
+            steps {
+                withCredentials([
+                    [$class: 'AmazonWebServicesCredentialsBinding',
+                     credentialsId: 'aws-credentials']
+                ]) {
+                    sh '''
+                        echo "===== JENKINS AWS ACCOUNT ====="
+                        aws sts get-caller-identity
+                    '''
+                }
+            }
+        }
 
         stage('Python Setup') {
             steps {
                 echo 'Installing Python dependencies...'
-
                 sh '''
                     python3 --version
                     pip3 --version
-
                     pip3 install --break-system-packages -r requirements.txt
                 '''
             }
         }
 
-
         stage('Test') {
             steps {
                 echo 'Running Python tests...'
-
                 sh '''
                     echo "===== PYTHON COMPILE CHECK ====="
 
@@ -65,7 +73,6 @@ pipeline {
                 '''
             }
         }
-
 
         stage('SonarQube Analysis') {
             steps {
@@ -89,7 +96,6 @@ pipeline {
             }
         }
 
-
         stage('Build Docker Image') {
             steps {
                 echo 'Building Docker image...'
@@ -104,7 +110,6 @@ pipeline {
                 '''
             }
         }
-
 
         stage('Login to Amazon ECR') {
             steps {
@@ -128,7 +133,6 @@ pipeline {
             }
         }
 
-
         stage('Push Image to ECR') {
             steps {
                 echo 'Pushing Docker image to Amazon ECR...'
@@ -149,7 +153,6 @@ pipeline {
             }
         }
 
-
         stage('Deploy to EKS') {
             steps {
                 echo 'Deploying application to Amazon EKS...'
@@ -166,28 +169,23 @@ pipeline {
                         --region ${AWS_REGION} \
                         --name ${EKS_CLUSTER_NAME}
 
-
                         echo "===== CREATING NAMESPACE ====="
 
                         kubectl apply -f k8s/namespace.yaml
-
 
                         echo "===== APPLYING DEPLOYMENT ====="
 
                         kubectl apply -f k8s/deployment.yaml
 
-
                         echo "===== APPLYING SERVICE ====="
 
                         kubectl apply -f k8s/service.yaml
-
 
                         echo "===== UPDATING IMAGE ====="
 
                         kubectl set image deployment/seclock-deployment \
                         seclock=${IMAGE_NAME}:${IMAGE_TAG} \
                         -n seclock
-
 
                         echo "===== WAITING FOR ROLLOUT ====="
 
@@ -198,7 +196,6 @@ pipeline {
                 }
             }
         }
-
 
         stage('Verify EKS Deployment') {
             steps {
@@ -216,20 +213,17 @@ pipeline {
 
                         kubectl get pods -n seclock
 
-
                         echo "=========================================="
                         echo "           DEPLOYMENT"
                         echo "=========================================="
 
                         kubectl get deployment -n seclock
 
-
                         echo "=========================================="
                         echo "             SERVICE"
                         echo "=========================================="
 
                         kubectl get svc -n seclock
-
 
                         echo "=========================================="
                         echo "          ENDPOINTS"
@@ -240,6 +234,5 @@ pipeline {
                 }
             }
         }
-
     }
 }
