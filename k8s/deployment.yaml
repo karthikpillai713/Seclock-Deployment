@@ -25,7 +25,7 @@ spec:
 
         - name: seclock
 
-          image: image: 879786010528.dkr.ecr.us-east-1.amazonaws.com/seclock:latest
+          image: 879786010528.dkr.ecr.us-east-1.amazonaws.com/seclock:latest
 
           imagePullPolicy: Always
 
